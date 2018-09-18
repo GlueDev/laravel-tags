@@ -35,7 +35,15 @@ trait HasTags
     public function tags(): MorphToMany
     {
         return $this
-            ->morphToMany(self::getTagClassName(), 'taggable')
+            ->morphToMany(
+                self::getTagClassName(),
+                'taggable',
+                'taggables',
+                'taggable_uuid',
+                'tag_uuid',
+                null,
+                'uuid'
+            )
             ->orderBy('order_column');
     }
 
@@ -66,8 +74,8 @@ trait HasTags
         collect($tags)->each(function ($tag) use ($query) {
             $query->whereIn("{$this->table}.{$this->getKeyName()}", function ($query) use ($tag) {
                 $query->from('taggables')
-                    ->select('taggables.taggable_id')
-                    ->where('taggables.tag_id', $tag ? $tag->id : 0);
+                    ->select('taggables.taggable_uuid')
+                    ->where('taggables.tag_uuid', $tag ? $tag->uuid : 0);
             });
         });
 
@@ -85,9 +93,9 @@ trait HasTags
         $tags = static::convertToTags($tags, $type);
 
         return $query->whereHas('tags', function (Builder $query) use ($tags) {
-            $tagIds = collect($tags)->pluck('id');
+            $tagUuids = collect($tags)->pluck('uuid');
 
-            $query->whereIn('id', $tagIds);
+            $query->whereIn('uuid', $tagUuids);
         });
     }
 
@@ -109,7 +117,7 @@ trait HasTags
 
         $tags = collect($className::findOrCreate($tags));
 
-        $this->tags()->syncWithoutDetaching($tags->pluck('id')->toArray());
+        $this->tags()->syncWithoutDetaching($tags->pluck('uuid')->toArray());
 
         return $this;
     }
@@ -163,7 +171,7 @@ trait HasTags
 
         $tags = collect($className::findOrCreate($tags));
 
-        $this->tags()->sync($tags->pluck('id')->toArray());
+        $this->tags()->sync($tags->pluck('uuid')->toArray());
 
         return $this;
     }
@@ -180,7 +188,7 @@ trait HasTags
 
         $tags = collect($className::findOrCreate($tags, $type));
 
-        $this->syncTagIds($tags->pluck('id')->toArray(), $type);
+        $this->syncTagUuids($tags->pluck('uuid')->toArray(), $type);
 
         return $this;
     }
@@ -205,44 +213,44 @@ trait HasTags
     /**
      * Use in place of eloquent's sync() method so that the tag type may be optionally specified.
      *
-     * @param $ids
+     * @param $uuids
      * @param string|null $type
      * @param bool $detaching
      */
-    protected function syncTagIds($ids, string $type = null, $detaching = true)
+    protected function syncTagUuids($uuids, string $type = null, $detaching = true)
     {
         $isUpdated = false;
 
-        // Get a list of tag_ids for all current tags
+        // Get a list of tag_uuids for all current tags
         $current = $this->tags()
             ->newPivotStatement()
-            ->where('taggable_id', $this->getKey())
+            ->where('taggable_uuid', $this->getKey())
             ->when($type !== null, function ($query) use ($type) {
                 $tagModel = $this->tags()->getRelated();
 
                 return $query->join(
                     $tagModel->getTable(),
-                    'taggables.tag_id',
+                    'taggables.tag_uuid',
                     '=',
                     $tagModel->getTable().'.'.$tagModel->getKeyName()
                 )
                     ->where('tags.type', $type);
             })
-            ->pluck('tag_id')
+            ->pluck('tag_uuid')
             ->all();
 
-        // Compare to the list of ids given to find the tags to remove
-        $detach = array_diff($current, $ids);
+        // Compare to the list of uuids given to find the tags to remove
+        $detach = array_diff($current, $uuids);
         if ($detaching && count($detach) > 0) {
             $this->tags()->detach($detach);
             $isUpdated = true;
         }
 
-        // Attach any new ids
-        $attach = array_diff($ids, $current);
+        // Attach any new uuids
+        $attach = array_diff($uuids, $current);
         if (count($attach) > 0) {
-            collect($attach)->each(function ($id) {
-                $this->tags()->attach($id, []);
+            collect($attach)->each(function ($uuid) {
+                $this->tags()->attach($uuid, []);
             });
             $isUpdated = true;
         }

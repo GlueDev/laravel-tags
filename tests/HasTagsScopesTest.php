@@ -5,6 +5,7 @@ namespace Spatie\Translatable\Test;
 use Spatie\Tags\Tag;
 use Spatie\Tags\Test\TestCase;
 use Spatie\Tags\Test\TestModel;
+use Ramsey\Uuid\Uuid;
 
 class HasTagsScopesTest extends TestCase
 {
@@ -16,21 +17,25 @@ class HasTagsScopesTest extends TestCase
         parent::setUp();
 
         TestModel::create([
+            'uuid' => (string) Uuid::uuid4(),
             'name' => 'model1',
             'tags' => ['tagA'],
         ]);
 
         TestModel::create([
+            'uuid' => (string) Uuid::uuid4(),
             'name' => 'model2',
             'tags' => ['tagA', 'tagB'],
         ]);
 
         TestModel::create([
+            'uuid' => (string) Uuid::uuid4(),
             'name' => 'model3',
             'tags' => ['tagA', 'tagB', 'tagC'],
         ]);
 
         TestModel::create([
+            'uuid' => (string) Uuid::uuid4(),
             'name' => 'model4',
             'tags' => ['tagD'],
         ]);
@@ -39,6 +44,7 @@ class HasTagsScopesTest extends TestCase
         $anotherTypedTag = Tag::findOrCreate('tagF', 'typedTag');
 
         TestModel::create([
+            'uuid' => (string) Uuid::uuid4(),
             'name' => 'model5',
             'tags' => [$typedTag, $anotherTypedTag],
         ]);

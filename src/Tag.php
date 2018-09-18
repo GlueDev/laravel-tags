@@ -8,6 +8,7 @@ use Spatie\Translatable\HasTranslations;
 use Illuminate\Database\Eloquent\Builder;
 use Spatie\EloquentSortable\SortableTrait;
 use Illuminate\Database\Eloquent\Collection as DbCollection;
+use Ramsey\Uuid\Uuid;
 
 class Tag extends Model implements Sortable
 {
@@ -76,6 +77,7 @@ class Tag extends Model implements Sortable
 
         if (! $tag) {
             $tag = static::create([
+                'uuid' => (string) Uuid::uuid4(),
                 'name' => [$locale => $name],
                 'type' => $type,
             ]);
